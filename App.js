@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, KeyboardAvoidingView } from 'react-native';
 import EditableTimer from './components/EditableTimer';
 import ToggleableTimerForm from './components/ToggleableTimerForm';
 import uuidv4 from 'uuid/v4';
@@ -12,14 +12,14 @@ export default class App extends React.Component {
         id: uuidv4(),
         title: "Mow the lawn",
         project: "House Chores",
-        elapsed: "8986300",
+        elapsed: 8986300,
         isRunning: true,
       },
       {
         id: uuidv4(),
         title: "Bake squash",
         project: "Kitchen Chores",
-        elapsed: "3890985",
+        elapsed: 3890985,
         isRunning: false,
       }
     ],
@@ -37,7 +37,7 @@ export default class App extends React.Component {
     const { timers } = this.state;
 
     this.setState({
-      timers: timers.map( timer => {
+      timers: timers.map(timer => {
         if (timer.id === attrs.id) {
           const { title, project } = attrs;
 
@@ -53,6 +53,56 @@ export default class App extends React.Component {
     });
   }
 
+  handleRemovePress = timerId => {
+    this.setState({
+      timers: this.state.timers.filter(t => t.id != timerId),
+    });
+  };
+
+  toggleTimer = timerId => {
+    this.setState(prevState => {
+      const { timers } = prevState;
+
+      return {
+        timers: timers.map(timer => {
+          const { id, isRunning } = timer;
+
+          if (id == timerId) {
+            return {
+              ...timer,
+              isRunning: !isRunning,
+            };
+          }
+
+          return timer;
+        }),
+      };
+    });
+  }
+
+  componentDidMount() {
+    const TIME_INTERVAL = 1000;
+
+    this.intervalId = setInterval(() => {
+      const { timers } = this.state;
+
+      this.setState({
+        timers: timers.map(timer => {
+          const { elapsed, isRunning } = timer;
+
+          return {
+            ...timer,
+            elapsed: isRunning ? elapsed + TIME_INTERVAL : elapsed,
+          };
+        })
+      });
+    }, TIME_INTERVAL);
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.intervalId);
+  }
+
   render() {
     const { timers } = this.state;
 
@@ -61,45 +111,56 @@ export default class App extends React.Component {
         <View style={styles.titleContainer}>
           <Text style={styles.title}>Timers</Text>
         </View>
-        <ScrollView style={styles.timerList}>
-          <ToggleableTimerForm 
-            isOpen={true}
-            onFormSubmit={this.handleCreateFormSubmit}
-          />
-
-          {timers.map(({ title, project, id, elapsed, isRunning}) => (
-            <EditableTimer 
-              key={id}
-              id={id}
-              title={title}
-              project={project}
-              elapsed={elapsed}
-              isRunning={isRunning}
-              onFormSubmit={this.handleFormSubmit}
+        <KeyboardAvoidingView
+          behavior="padding"
+          style={styles.timerListContainer}
+        >
+          <ScrollView style={styles.timerList}>
+            <ToggleableTimerForm
+              isOpen={true}
+              onFormSubmit={this.handleCreateFormSubmit}
             />
-          ))}
-        </ScrollView>
+
+            {timers.map(({ title, project, id, elapsed, isRunning }) => (
+              <EditableTimer
+                key={id}
+                id={id}
+                title={title}
+                project={project}
+                elapsed={elapsed}
+                isRunning={isRunning}
+                onFormSubmit={this.handleFormSubmit}
+                onRemovePress={this.handleRemovePress}
+                onStartPress={this.toggleTimer}
+                onStopPress={this.toggleTimer}
+              />
+            ))}
+          </ScrollView>
+        </KeyboardAvoidingView>
       </View>
     );
   }
 }
 
 const styles = StyleSheet.create({
- appContainer: {
-   flex: 1,
- },
- titleContainer: {
-  paddingTop: 35,
-  paddingBottom: 15,
-  borderBottomWidth: 1,
-  borderBottomColor: "#D6D7DA",
- },
- title: {
-   fontSize: 18,
-   fontWeight: 'bold',
-   textAlign: 'center',
- },
- timerList: {
-   paddingBottom: 15,
- },
+  appContainer: {
+    flex: 1,
+  },
+  titleContainer: {
+    paddingTop: 35,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#D6D7DA",
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  timerListContainer: {
+    flex: 1,
+  },
+  timerList: {
+    paddingBottom: 15,
+  },
 });
